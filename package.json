@@ -1,6 +1,6 @@
 {
   "name": "ts-redux-store-builder",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Build Redux store with TypeScript!",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
