@@ -1,9 +1,4 @@
-type StoreType = {
-  name: string;
-};
+import ModuleStore from './classes/ModuleStore';
+import * as moduleStoreHelpers from './helpers';
 
-export default function getTypeName(a: StoreType): StoreType {
-  return {
-    name: a.name + 'test',
-  };
-}
+export { ModuleStore, moduleStoreHelpers };
