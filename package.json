@@ -1,6 +1,6 @@
 {
   "name": "ts-redux-store-builder",
-  "version": "0.0.2",
+  "version": "1.0.0",
   "description": "Build Redux store with TypeScript!",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -19,7 +19,7 @@
     "prepare": "npm run build",
     "prepublishOnly": "npm test && npm run lint",
     "preversion": "npm run lint",
-    "version": "npm run format && git add -A src",
+    "version": "git add -A src",
     "postversion": "git push && git push --tags"
   },
   "keywords": [
