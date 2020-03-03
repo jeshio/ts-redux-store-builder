@@ -7,33 +7,31 @@ const REQUEST_ACTION_NAME = 'request';
 const SUCCESS_ACTION_NAME = 'success';
 const FAILURE_ACTION_NAME = 'failure';
 
-type WithActionType<Action> = Action & { type: string };
+type ActionWithType<Action> = Action & {type: string}
 
 export default class ModuleStore<
   StoreT extends StringIndexes,
-  ActionsT extends StringIndexes,
+  ActionsT extends {
+  [index: string]: any[] | IApiAction;
+  },
   SelectorsT extends StoreT,
-  ApiT = {},
   ActionsWithType = {
-    [P in keyof ActionsT]: ActionsT[P] extends IApiAction<any, any, any>
-      ? {
-          request: WithActionType<ActionsT[P]['request']>;
-          success: WithActionType<ActionsT[P]['success']>;
-          failure: WithActionType<ActionsT[P]['failure']>;
-        }
-      : WithActionType<ActionsT[P]>;
-  }
-> {
-  protected moduleName: string;
+    [P in keyof ActionsT]: 
+      ActionsT[P] extends IApiAction
+      ?  {
+          request: ActionWithType<ActionsT[P]['request']>;
+          success: ActionWithType<ActionsT[P]['success']>;
+          failure: ActionWithType<ActionsT[P]['failure']>;
+      } : ActionsT[P] extends any[] ? ActionWithType<(...args: ActionsT[P]) => IAction<ActionsT[P]>> : never;
+  }> {
   protected reducersList: TReducer<StoreT, any>[] = [];
   
   #actions: ActionsWithType = {} as ActionsWithType;
   #selectors: SelectorsT = {} as SelectorsT;
   #initialStore: StoreT = {} as StoreT;
-  #api: ApiT = {} as ApiT;
 
   constructor(
-    moduleName: string,
+    protected readonly moduleName: string,
     initialActions: {
       [P in keyof ActionsT]: ActionsT[P] extends IApiAction<any, any, any>
         ? {
@@ -41,8 +39,8 @@ export default class ModuleStore<
             success: TReducer<StoreT, Parameters<ActionsT[P]['success']>>;
             failure: TReducer<StoreT, Parameters<ActionsT[P]['failure']>>;
           }
-        : TReducer<StoreT, Parameters<ActionsT[P]>>;
-    } = {} as ActionsT,
+        : TReducer<StoreT, ActionsT[P]>;
+    } = {} as any,
     initialFields: StoreT = {} as StoreT,
     initialSelectors: {
       [P in keyof Subtract<SelectorsT, keyof StoreT>]: (
@@ -59,14 +57,13 @@ export default class ModuleStore<
         ) => SelectorsT[P];
       } = {} as SelectorsT,
   ) {
-    this.moduleName = moduleName;
     this.setAction = this.setAction.bind(this);
     this.addStoreField = this.addStoreField.bind(this);
     if (initialActions) {
-      Object.keys(initialActions).map(actionName => {
+      Object.keys(initialActions).map((actionName: keyof typeof initialActions) => {
         const action = initialActions[
           actionName
-        ] as ActionsT[typeof actionName];
+        ] as any; // TODO: I cant to handle this type
 
         if (
           typeof action[REQUEST_ACTION_NAME] === 'function' &&
@@ -104,15 +101,11 @@ export default class ModuleStore<
     return this.#actions;
   }
 
-  public get api() {
-    return this.#api;
-  }
-
   public get initialStore() {
     return this.#initialStore;
   }
 
-  public selectors = (store: StoreT | StringIndexes): SelectorsT => {
+  public selectors = (store: {[key: string]: any | StoreT}): SelectorsT => {
     return Object.keys(this.#selectors).reduce(
       (base, selectorName: string) => ({
         ...base,
@@ -136,18 +129,18 @@ export default class ModuleStore<
 
   public setAction = <K extends keyof ActionsT>(
     actionName: K,
-    reducer: TReducer<StoreT, Parameters<ActionsT[K]>>,
+    reducer: TReducer<StoreT, ActionsT[K]>,
   ) => {
     const modelActionType = this.makeActionType(actionName);
     const action = (
-      ...args: Parameters<ActionsT[K]>
-    ): IAction<Parameters<ActionsT[K]>> => ({
+      ...args: ActionsT[K] extends any[] ? ActionsT[K] : []
+    ): IAction<ActionsT[K] extends any[] ? ActionsT[K] : []> => ({
       payload: args,
       type: modelActionType,
     });
-    action.type = modelActionType;
+    action.type = modelActionType; // adds a type prop to every action
     this.reducersList.push(
-      makeReducersByKeys<StoreT, Parameters<ActionsT[K]>>({
+      makeReducersByKeys<StoreT, ActionsT[K]>({
         [modelActionType]: reducer,
       }),
     );
@@ -162,22 +155,23 @@ export default class ModuleStore<
   public setApiAction = <K extends keyof ActionsT>(
     actionName: K,
     reducers: {
-      request: TReducer<StoreT, Parameters<ActionsT[K]['request']>>;
-      success: TReducer<StoreT, Parameters<ActionsT[K]['success']>>;
-      failure: TReducer<StoreT, Parameters<ActionsT[K]['failure']>>;
+      request: TReducer<StoreT,ActionsT[K] extends IApiAction ? ActionsT[K]['request'] : []>;
+      success: TReducer<StoreT,ActionsT[K] extends IApiAction ? ActionsT[K]['success'] : []>;
+      failure: TReducer<StoreT,ActionsT[K] extends IApiAction ? ActionsT[K]['failure'] : []>;
     },
   ) => {
-    const createAction = (name: string, reducer: TReducer<StoreT, any>) => {
+    const createAction = (name: keyof IApiAction, reducer: TReducer<StoreT, any>) => {
+      type ApiActionArgsType = ActionsT[K] extends IApiAction ? Parameters<ActionsT[K][typeof name]> : []
       const modelActionType = this.makeActionType(`${actionName}.${name}`);
       const action = (
-        ...args: Parameters<ActionsT[K]>
-      ): IAction<Parameters<ActionsT[K]>> => ({
+        ...args: ApiActionArgsType
+      ): IAction<ApiActionArgsType> => ({
         payload: args,
         type: modelActionType,
       });
       action.type = modelActionType;
       this.reducersList.push(
-        makeReducersByKeys<StoreT, Parameters<ActionsT[K]>>({
+        makeReducersByKeys<StoreT, ActionsT[K]>({
           [modelActionType]: reducer,
         }),
       );
@@ -217,10 +211,6 @@ export default class ModuleStore<
     };
 
     return this;
-  };
-
-  public setApi = (api: ApiT) => {
-    this.#api = api;
   };
 
   protected makeActionType(actionName: keyof ActionsT) {

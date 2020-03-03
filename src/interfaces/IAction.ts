@@ -1,4 +1,4 @@
-export default interface IAction<PayloadT = any> {
+export default interface IAction<PayloadT = any[]> {
   type: string;
   payload: PayloadT;
 }
