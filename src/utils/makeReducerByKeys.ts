@@ -5,7 +5,7 @@ export default function makeReducersByKeys<
   StoreT = {},
   PayloadT = {}
 >(reducerByKeys: {
-  [s: string]: TReducer<StoreT, PayloadT>;
+  [s: string]: TReducer<StoreT, any>;
 }): TReducer<StoreT, PayloadT> {
   const keys = Object.keys(reducerByKeys);
 

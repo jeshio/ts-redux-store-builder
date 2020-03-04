@@ -14,7 +14,7 @@ describe('ModuleStore', () => {
   };
 
   describe('WITH EMPTY PARAMS', () => {
-    const moduleStore = new ModuleStore<{}, {}, {}>(moduleName);
+    const moduleStore = new ModuleStore<{}, {}>(moduleName);
 
     test('should no have actions', () => {
       expect(moduleStore.actions).toStrictEqual({});
@@ -26,7 +26,7 @@ describe('ModuleStore', () => {
 
     test('should return empty state from reducer', () => {
       expect(
-        moduleStore.reducers({}, { payload: null, type: 'type' }),
+        moduleStore.reducer({}, { payload: null, type: 'type' }),
       ).toStrictEqual({});
     });
 
@@ -60,7 +60,7 @@ describe('ModuleStore', () => {
 
     test('should return empty state from reducer', () => {
       expect(
-        moduleStore.reducers(initialFields, { payload: null, type: 'type' }),
+        moduleStore.reducer(initialFields, { payload: null, type: 'type' }),
       ).toStrictEqual(initialFields);
     });
 
@@ -100,8 +100,8 @@ describe('ModuleStore', () => {
     >(
       moduleName,
       {
-        firstAction: store => store,
-        actionWithoutArgs: store => store,
+        firstAction: state => state,
+        actionWithoutArgs: state => state,
       },
       initialFields,
     );
@@ -127,7 +127,7 @@ describe('ModuleStore', () => {
 
     test('should return empty state from reducer', () => {
       expect(
-        moduleStore.reducers({}, { payload: null, type: 'type' }),
+        moduleStore.reducer({}, { payload: null, type: 'type' }),
       ).toStrictEqual({});
     });
 
@@ -156,18 +156,18 @@ describe('ModuleStore', () => {
       moduleName,
       {
         fetchList: {
-          request: store => store,
-          failure: store => store,
-          success: store => store,
+          request: state => state,
+          failure: state => state,
+          success: state => state,
         },
         fetchDetails: {
-          request: (store, action) => ({ ...store, id: action.payload[0] }),
-          failure: (store, action) => ({
-            ...store,
+          request: (state, action) => ({ ...state, id: action.payload[0] }),
+          failure: (state, action) => ({
+            ...state,
             details: action.payload[0].error.message,
           }),
-          success: (store, action) => ({
-            ...store,
+          success: (state, action) => ({
+            ...state,
             details: action.payload[0].data,
           }),
         },
@@ -211,13 +211,13 @@ describe('ModuleStore', () => {
       moduleName,
       {
         fetchDetails: {
-          request: (store, action) => ({ ...store, id: action.payload[0] }),
-          failure: (store, action) => ({
-            ...store,
+          request: (state, action) => ({ ...state, id: action.payload[0] }),
+          failure: (state, action) => ({
+            ...state,
             details: action.payload[0].error.message,
           }),
-          success: (store, action) => ({
-            ...store,
+          success: (state, action) => ({
+            ...state,
             details: action.payload[0].data,
           }),
         },
@@ -228,8 +228,8 @@ describe('ModuleStore', () => {
 
     test('should changes state on actions', () => {
       const { fetchDetails, resetState } = moduleStore.actions;
-      const { reducers } = moduleStore;
-      const newState = reducers(initialFields, fetchDetails.request(6));
+      const { reducer } = moduleStore;
+      const newState = reducer(initialFields, fetchDetails.request(6));
 
       expect(newState).toStrictEqual({
         ...initialFields,
@@ -237,7 +237,7 @@ describe('ModuleStore', () => {
       });
 
       expect(
-        reducers(
+        reducer(
           newState,
           fetchDetails.success({
             data: 'ok',
@@ -246,7 +246,7 @@ describe('ModuleStore', () => {
       ).toStrictEqual({ ...initialFields, id: 6, details: 'ok' });
 
       expect(
-        reducers(
+        reducer(
           newState,
           fetchDetails.failure({
             error: {
@@ -257,7 +257,7 @@ describe('ModuleStore', () => {
         ),
       ).toStrictEqual({ ...initialFields, id: 6, details: 'bad' });
 
-      expect(reducers(newState, resetState())).toStrictEqual(initialFields);
+      expect(reducer(newState, resetState())).toStrictEqual(initialFields);
     });
   });
 });

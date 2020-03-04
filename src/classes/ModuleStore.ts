@@ -14,7 +14,7 @@ export default class ModuleStore<
   ActionsT extends {
   [index: string]: any[] | IApiAction;
   },
-  SelectorsT extends StoreT,
+  SelectorsT extends StoreT = StoreT,
   ActionsWithType = {
     [P in keyof ActionsT]: 
       ActionsT[P] extends IApiAction
@@ -119,7 +119,7 @@ export default class ModuleStore<
     ) as SelectorsT;
   };
 
-  public reducers = (store = this.#initialStore, action: IAction) => {
+  public reducer = (store = this.#initialStore, action: IAction) => {
     return this.reducersList.reduce(
       (currentStore: StoreT, reducer: TReducer<StoreT>) =>
         reducer(currentStore, action),
